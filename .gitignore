@@ -1,0 +1,13 @@
+# Internal-only (public-repo hygiene): owner config + notes, never published.
+.internal/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+*.iml
+
+# Python (ticketwright setup merges its own export-guard rules on top)
+__pycache__/
+*.py[cod]
+.venv/
