@@ -3,9 +3,10 @@
 ## Ticket Information
 - **Link:** https://kclabs.atlassian.net/browse/DEMO-14
 - **Type:** Task
-- **Status:** To Do
+- **Status:** Done (delivered 2026-07-04)
 - **Epic/Parent:** None
 - **Assignee:** Unassigned (folder owner: kchalmers)
+- **Delivery:** PR [#1](https://github.com/kyle-chalmers/tickets-example/pull/1) · Jira answer comment posted · ticket transitioned to Done
 
 ## Business Context
 For the YouTube channel, identify which **full-length** video was most popular over each rolling
