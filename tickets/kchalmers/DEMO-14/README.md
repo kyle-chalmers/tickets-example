@@ -27,6 +27,21 @@ underlying numbers.
 YouTube Analytics API, or any other source.
 **Caveat:** YouTube analytics lag ~2–3 days, so the most recent days in each window are partial.
 
+## Answer
+Anchor = latest `snapshot_date` **2026-07-04**. Full-length universe = 28 videos.
+
+| Window | Measure | Winner (video_id) | Title | Value |
+|---|---|---|---|---|
+| Past 1 month (30d) | Net subscribers gained | `2hiELj4Yavw` | Why Gartner Says This Layer Is Critical for AI! | **+17** |
+| Past 1 month (30d) | Views gained | `WRvgMzYaIVo` | Claude Code vs Manual Jira Ticket Work | **1,182** |
+| Past 3 months (90d) | Net subscribers gained | `WRvgMzYaIVo` | Claude Code vs Manual Jira Ticket Work | **+45** |
+| Past 3 months (90d) | Views gained | `WRvgMzYaIVo` | Claude Code vs Manual Jira Ticket Work | **6,158** |
+
+"Claude Code vs Manual Jira Ticket Work" wins three of the four cells. Runner-up margins (see
+`exploratory_analysis/leaderboard_top5.sql`): the two **subscriber** races are tight — 1mo 17 vs 16
+(`bn9wnNjG-gc`), 3mo 45 vs 43 — so the partial last ~2–3 days could still nudge those; both **views**
+races are decisive. Numbers reflect data as of 2026-07-04 (recent days partial).
+
 ## Investigation Scope
 *Objects in play (all in `primeval-node-478707-e9.youtube_analytics`, partitioned by `snapshot_date` DAY):*
 
@@ -53,7 +68,7 @@ repo. Nothing to reuse.
 context` would build one; not a blocker here since the ticket carries its own definitions.
 
 ## Assumptions Made
-*Proposed — to be confirmed/refined in `/spec-and-build` before building (policy `reduce_assumptions`).*
+*Decided in the spec ([specs/DEMO-14-top-full-length-video.md](../../../specs/DEMO-14-top-full-length-video.md)) under a delegated "complete the chain"; documented per policy `reduce_assumptions`.*
 
 1. **Scope/Time Window**: Window anchor is the single global latest `snapshot_date` (2026-07-04);
    "rolling 30/90 days" = `snapshot_date BETWEEN DATE_SUB(anchor, INTERVAL N-1 DAY) AND anchor`
@@ -72,7 +87,24 @@ context` would build one; not a blocker here since the ticket carries its own de
    and the underlying metric value; a video may win more than one cell.
 
 ## Deliverables
-*Numbered in review order; filenames carry record counts. — pending `/spec-and-build`.*
+*Numbered in review order; filenames carry record counts.*
+1. [`final_deliverables/01_top_full_length_video.sql`](final_deliverables/01_top_full_length_video.sql)
+   — the answer query (single-statement, parameterized anchor, explicit `ORDER BY`).
+2. [`final_deliverables/01_top_full_length_video_4rows.csv`](final_deliverables/01_top_full_length_video_4rows.csv)
+   — the 4 winners (one per window × measure) with underlying numbers.
+- Supporting: [`qc_queries/`](qc_queries/) (3 gate scripts) ·
+  [`exploratory_analysis/leaderboard_top5.sql`](exploratory_analysis/leaderboard_top5.sql) (top-5 context).
 
 ## Quality Control
-*The `/review` verdict + pyramid results (counts/dedup, reconciliation, anti-patterns). — pending.*
+Validation pyramid — all gates **PASS** (self-check during build; independent `/review` pass next):
+
+| # | Gate | Result |
+|---|---|---|
+| ① | Dialect lint / dry-run | ✓ valid; 0.12 MB scanned |
+| ② | **Duplicate detection** on `(video_id, snapshot_date)` (90d, all 3 tables) | ✓ 0 dup keys |
+| ③ | Reconciliation — anchor equal across 3 tables; universe = 28; coverage 27/28 (subs 30d), 28/28 (views 30d) | ✓ (1 full-length video has no 30d analytics rows → not rankable on subs, expected) |
+| ④ | Independent re-derivation of all 4 winners (scalar min/max method) | ✓ 17 / 1182 / 45 / 6158 match exactly |
+| ⑤ | Anti-pattern sweep — no `SELECT *`, explicit `ORDER BY`, params at top, views deltas ≥ 0 (0 negatives) | ✓ |
+
+Winners confirmed rank-1 via the top-5 leaderboard. **Caveat carried to the answer:** the two
+subscriber races are within 1–2 subs of the runner-up and the last ~2–3 days are partial.
