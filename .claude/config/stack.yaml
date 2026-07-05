@@ -1,0 +1,75 @@
+# stack.yaml — Ticketwright's single source of truth: which concrete tool fills each abstract
+# seam, the project facts the skills need, and the 9 policies every skill inherits. Skills never
+# hardcode a CLI, site, dataset, or ID — those live here + in the per-tool adapters. Swapping a tool
+# means editing this file and pointing at a different adapter; no skill changes.
+#
+# Written by /ticketwright:setup on 2026-07-04. Field docs: .claude/config/stack.schema.md (plugin).
+# Validate: bash "${CLAUDE_PLUGIN_ROOT}/bin/verify_stack.sh" .claude/config/stack.yaml
+
+project:
+  key_prefix: DEMO                     # ticket-ID prefix; branch names = DEMO-NNNN
+  key_prefixes: [DEMO]                 # prefixes the ticket index recognizes in folder names (defaults to [key_prefix])
+  assignee_dir: kchalmers              # default owner subdir under tickets/
+  ticket_path: "tickets/{assignee}/{id}"
+  ticket_subdirs: [source_materials, final_deliverables, qc_queries, exploratory_analysis]
+  default_epic: null                   # DEMO Tasks don't require a parent Epic; set an Epic id (e.g. DEMO-1) to auto-parent new tickets
+  terminal_status: Done                # the board's "done" state; change if your workflow's done column differs
+  ticket_url_template: "https://kclabs.atlassian.net/browse/{id}"   # how tickets/INDEX.md links each ticket ({id} token)
+  word_limits: {tracker_comment: 100, chat: 100, pr: 200, ticket: 200}
+
+seams:
+  tracker:
+    tool: jira
+    adapter: adapters/tracker/jira.md
+    transport: both                    # acli (CLI) for reads/creates/transitions; Atlassian MCP for rich comments
+    site: kclabs.atlassian.net
+    cloud_id: 266a8da5-109e-40e7-ac9f-2ff023054950   # Atlassian cloudId for MCP comment/search calls
+    cli: acli
+    mcp: atlassian                     # adapter calls mcp__atlassian__*; this session's server id is claude_ai_Atlassian_Rovo — remap if yours differs
+    verify: 'acli jira workitem search --jql "project = {key_prefix}" --limit 1'
+
+  warehouse:
+    tool: bigquery
+    adapter: adapters/warehouse/bigquery.md
+    transport: cli                     # bq (gcloud SDK)
+    project: primeval-node-478707-e9
+    dataset: youtube_analytics
+    # dev_dataset: youtube_analytics_dev   # TODO: point at a dev dataset for CREATE OR REPLACE promotion
+    verify: "bq query --use_legacy_sql=false --dry_run 'SELECT 1'"
+
+  # ── Optional seams — add later with `/ticketwright:setup chat` / `/ticketwright:setup docstore`. ──
+  # Until then, comms + backup steps in the skills degrade gracefully (they warn and skip).
+  # chat:
+  #   tool: slack                      # or teams
+  #   adapter: adapters/chat/slack.md
+  #   transport: mcp
+  #   default_channel: C0XXXXXXXXX
+  #   default_mode: draft
+  #   always_include: [Kyle]           # names always added to a message (never solo-DM a stakeholder)
+  #   verify: null
+  # docstore:
+  #   tool: gdrive                     # or sharepoint
+  #   adapter: adapters/docstore/gdrive.md
+  #   transport: cli
+  #   base_path: "/path/to/Shared drives/Tickets"
+  #   verify: "test -d \"{base_path}\""
+
+  vcs:
+    tool: github
+    adapter: adapters/vcs/github.md
+    transport: cli                     # git + gh
+    default_branch: main
+    semantic_pr: true
+    worktree_root: ".claude/worktrees"
+    verify: "gh auth status"
+
+policies:
+  hard_halt_before_external_posts: true   # pause for human go before any tracker/chat/docstore write
+  db_write_requires_approval: true        # show SQL, explain, wait for "yes" before any non-SELECT
+  chat_default_draft: true                # draft chat messages; only send on explicit "send it"
+  hyperlink_everything: true              # every ticket-id / file / PR becomes a smart link
+  commandify_everything: true             # recurring work → /ticketwright:productize, not a one-off
+  reduce_assumptions: true                # ask before building; still document every assumption in the ticket README
+  commit_plan_before_implement: true      # /spec-and-build commits the spec before building (blame-free retry)
+  system_evolution: true                  # a failure fixes the AI layer (rule/context/adapter), not just the ticket
+  deterministic_outputs: true             # explicit ORDER BY on exports; productized skills ship golden-replay diffs

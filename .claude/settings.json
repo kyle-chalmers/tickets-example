@@ -1,0 +1,35 @@
+{
+  "_README": "Team-shared repo settings. Hooks (db_write_guard PreToolUse, session/ticket-index SessionStart, ticket-index-regen PostToolUse) are wired by the ticketwright plugin manifest and run from ${CLAUDE_PLUGIN_ROOT} — NOT duplicated here, so they don't double-fire. This file carries the plugin enablement, a read-only permission baseline (the db_write_guard hook still gates destructive SQL even when a CLI is allowed), and the stack statusline.",
+  "enabledPlugins": {
+    "ticketwright@ticketwright": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(tree:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(fd:*)",
+      "Bash(find:*)",
+      "Bash(jq:*)",
+      "Bash(yq:*)",
+      "Bash(bq show:*)",
+      "Bash(bq ls:*)",
+      "Bash(acli jira workitem view:*)",
+      "Bash(acli jira workitem search:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)"
+    ],
+    "deny": []
+  },
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/statusline.sh"
+  }
+}
