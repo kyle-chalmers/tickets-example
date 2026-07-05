@@ -1,27 +1,36 @@
 -- Context / QC3: top-5 leaderboard per (window, measure). Confirms each deliverable winner
 -- is genuinely the max (rank 1) and shows the runners-up + margin.
-DECLARE anchor DATE DEFAULT (
-  SELECT MAX(snapshot_date) FROM `primeval-node-478707-e9.youtube_analytics.daily_video_stats`);
-
+-- Single-statement (anchor via `params` CTE, no DECLARE) so it runs in DataGrip / JDBC,
+-- the BigQuery console, and the bq CLI identically.
 WITH
+params AS (
+  SELECT MAX(snapshot_date) AS anchor
+  FROM `primeval-node-478707-e9.youtube_analytics.daily_video_stats`),
 full_length AS (
-  SELECT video_id, title FROM `primeval-node-478707-e9.youtube_analytics.video_metadata`
-  WHERE snapshot_date = anchor AND video_type = 'full_length'),
+  SELECT m.video_id, m.title
+  FROM `primeval-node-478707-e9.youtube_analytics.video_metadata` m
+  WHERE m.snapshot_date = (
+          SELECT MAX(snapshot_date) FROM `primeval-node-478707-e9.youtube_analytics.video_metadata`)
+    AND m.video_type = 'full_length'),
 windows AS (SELECT '1mo (30d)' AS window_label, 30 AS days UNION ALL SELECT '3mo (90d)', 90),
 subs AS (
   SELECT w.window_label, 'net_subscribers_gained' AS measure, a.video_id,
          SUM(a.subscribers_gained - a.subscribers_lost) AS metric_value
   FROM `primeval-node-478707-e9.youtube_analytics.daily_video_analytics` a
-  JOIN full_length f USING (video_id) CROSS JOIN windows w
-  WHERE a.snapshot_date BETWEEN DATE_SUB(anchor, INTERVAL w.days - 1 DAY) AND anchor
+  JOIN full_length f USING (video_id)
+  CROSS JOIN windows w
+  CROSS JOIN params p
+  WHERE a.snapshot_date BETWEEN DATE_SUB(p.anchor, INTERVAL w.days - 1 DAY) AND p.anchor
   GROUP BY w.window_label, a.video_id),
 views AS (
   SELECT w.window_label, 'views_gained' AS measure, s.video_id,
          ARRAY_AGG(s.view_count ORDER BY s.snapshot_date DESC LIMIT 1)[OFFSET(0)]
        - ARRAY_AGG(s.view_count ORDER BY s.snapshot_date ASC  LIMIT 1)[OFFSET(0)] AS metric_value
   FROM `primeval-node-478707-e9.youtube_analytics.daily_video_stats` s
-  JOIN full_length f USING (video_id) CROSS JOIN windows w
-  WHERE s.snapshot_date BETWEEN DATE_SUB(anchor, INTERVAL w.days - 1 DAY) AND anchor
+  JOIN full_length f USING (video_id)
+  CROSS JOIN windows w
+  CROSS JOIN params p
+  WHERE s.snapshot_date BETWEEN DATE_SUB(p.anchor, INTERVAL w.days - 1 DAY) AND p.anchor
   GROUP BY w.window_label, s.video_id),
 allm AS (SELECT * FROM subs UNION ALL SELECT * FROM views),
 ranked AS (
