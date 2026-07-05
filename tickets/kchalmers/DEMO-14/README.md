@@ -102,9 +102,14 @@ Validation pyramid — all gates **PASS** (self-check during build; independent 
 |---|---|---|
 | ① | Dialect lint / dry-run | ✓ valid; 0.12 MB scanned |
 | ② | **Duplicate detection** on `(video_id, snapshot_date)` (90d, all 3 tables) | ✓ 0 dup keys |
-| ③ | Reconciliation — anchor equal across 3 tables; universe = 28; coverage 27/28 (subs 30d), 28/28 (views 30d) | ✓ (1 full-length video has no 30d analytics rows → not rankable on subs, expected) |
+| ③ | Reconciliation — anchor equal across 3 tables; universe = 28; coverage 27/28 (subs 30d), 28/28 (views 30d) | ✓ (the 1 analytics-absent video is `2nBUItHz96c`, a recent upload with no flow rows yet → not rankable on subs, expected) |
 | ④ | Independent re-derivation of all 4 winners (scalar min/max method) | ✓ 17 / 1182 / 45 / 6158 match exactly |
 | ⑤ | Anti-pattern sweep — no `SELECT *`, explicit `ORDER BY`, params at top, views deltas ≥ 0 (0 negatives) | ✓ |
 
 Winners confirmed rank-1 via the top-5 leaderboard. **Caveat carried to the answer:** the two
 subscriber races are within 1–2 subs of the runner-up and the last ~2–3 days are partial.
+
+**Data-quality note:** `view_count` is non-monotonic for 8 video-windows (small YouTube revisions),
+so views gained uses date-ordered **last − first** (`ARRAY_AGG … ORDER BY snapshot_date`), not
+`MAX − MIN`; none of the 4 winners are affected. Independent `/review` verdict:
+[`qc_queries/04_review_verdict.md`](qc_queries/04_review_verdict.md) — **APPROVE**.

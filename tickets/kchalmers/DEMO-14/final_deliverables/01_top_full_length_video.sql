@@ -9,12 +9,14 @@ params AS (
   SELECT MAX(snapshot_date) AS anchor
   FROM `primeval-node-478707-e9.youtube_analytics.daily_video_stats`
 ),
--- Full-length universe (classification + title) from the latest metadata snapshot.
+-- Full-length universe (classification + title) from video_metadata's OWN latest snapshot,
+-- decoupled from the stats anchor so a metadata lag can't silently empty the result.
 full_length AS (
   SELECT m.video_id, m.title
   FROM `primeval-node-478707-e9.youtube_analytics.video_metadata` m
-  CROSS JOIN params p
-  WHERE m.snapshot_date = p.anchor AND m.video_type = 'full_length'
+  WHERE m.snapshot_date = (
+          SELECT MAX(snapshot_date) FROM `primeval-node-478707-e9.youtube_analytics.video_metadata`)
+    AND m.video_type = 'full_length'
 ),
 windows AS (
   SELECT '1mo (30d)' AS window_label, 30 AS days
