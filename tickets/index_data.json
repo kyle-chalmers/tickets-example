@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "tickets": [
+    {
+      "id": "DEMO-14",
+      "owner": "kchalmers",
+      "title": "Question: Top full-length video by net subscribers gained and by views gained (rolling 1mo & 3mo)",
+      "status": "Completed",
+      "date": "2026-07-04",
+      "cross_refs": [],
+      "tags": [
+        "youtube-analytics",
+        "bigquery",
+        "subscribers",
+        "views",
+        "rolling-window"
+      ],
+      "objects": [
+        "youtube_analytics.daily_video_analytics",
+        "youtube_analytics.daily_video_stats",
+        "youtube_analytics.video_metadata"
+      ],
+      "summary": "Top full-length video by net subs & by views over rolling 30d/90d (anchor 2026-07-04, BigQuery-only). 'Claude Code vs Manual Jira Ticket Work' won 3 of 4 cells (1mo subs: 'Why Gartner...' +17). Grain-clean, winners independently re-derived; /review = APPROVE.",
+      "confidence": "high",
+      "readme_present": true,
+      "readme_hash": "b51b483f966be0cfff663835e3e6e9dd37ff75c2e59af7ba30ae8d8b06fa0596",
+      "ticket_url": "https://kclabs.atlassian.net/browse/DEMO-14"
+    }
+  ]
+}
